@@ -5,99 +5,64 @@
 #include<stdarg.h>
 #include<math.h>
 #include<stdbool.h>
-#include <sys/time.h> 
+#include<stdint.h>
 
-
-typedef struct {
-	float x, y, z;
-} vec3;
-
-typedef struct {
-	float dat[4][4];
-} mat4;
-
-vec3 add(vec3 a, vec3 b){
-	return (vec3){a.x + b.x, a.y + b.y, a.z + b.z}; }
-
-vec3 sub(vec3 a, vec3 b){
-	return (vec3){a.x - b.x, a.y - b.y, a.z - b.z}; }
-
-vec3 mul(vec3 a, vec3 b){
-	return (vec3){a.x * b.x, a.y * b.y, a.z * b.z}; }
-
-float dot(vec3 a, vec3 b){
-	return a.x * b.x + a.y * b.y + a.z * b.z; }
-
-typedef struct {
-	char *buf;
-	//note width is +1
-	size_t w, h;
-} fbuf;
-
-fbuf init_fbuf(size_t w, size_t h){
-	char *ret = malloc(sizeof(char)*(w+1)*h + 1);
-	memset(ret, '.', sizeof(char)*(w+1)*h);
-	for(size_t i = 0; i < h; i++)
-		ret[w + i*(w+1)] = '\n';
-	ret[(w+1)*h] = 0;
-	return (fbuf){ret, w, h};
-}
-
-void free_fbuf(fbuf buf){
-	free(buf.buf);
-}
-
-#define HIDE_CURSOR printf("\033[?25l")
-#define SHOW_CURSOR printf("\033[?25h")
-#define SET_CURSOR_POS(row, col) printf("\033[%d;%dH", (row), (col))
-void clear_screen(){
-	SET_CURSOR_POS(0, 0);
-	//system("clear");
-}
-
-void print_buf(fbuf b){
-	fflush(stdout);
-
-	fwrite(b.buf, sizeof(char), (b.w+1)*b.h, stdout);
-	fflush(stdout);
-}
-
+#include "src/tty.h"
+#include "src/linalg.h"
+#include "src/time.h"
+#include "src/render.h"
 
 #define min(a, b) ((a)<(b)?(a):(b))
 
+struct shader_context{
+	double time;
+	size_t w, h;
+};
+
+
+char shader(size_t x, size_t y, void *ctx_){
+	struct shader_context *ctx = (struct shader_context*)ctx_;
+
+	double uvx = (double)(2*(int)x - (int)ctx->w)/(double)ctx->w * TXT_ASPECT,
+	       uvy = (double)(2*(int)y - (int)ctx->h)/(double)ctx->h;
+
+	double dist = sqrt(uvx*uvx + uvy*uvy);
+	if(dist < (0.5*cos(0.1*ctx->time) + 1.1))
+		return (char)(13 * sin(dist*dist + ctx->time) + 'A' + 13);
+
+
+	return ' ';
+}
+
+
 int main(){
+	//make sure our frame buffer can fit into the output buffer
 	setbuf(stdout, malloc(min(BUFSIZ, 200 * 70)));
-	HIDE_CURSOR;
 
-	fbuf buf = init_fbuf(160, 50);	
+	hide_cursor();
 
-	struct timeval stop, start;
-	gettimeofday(&start, NULL);
-	
-	double total_time = 0.0, prev_time = 0.0;
-
+	//no need to cleanup because that is handled by c at program exit
+	fbuf buf = init_fbuf(get_width(), get_height());	
+	double start = get_time(), frame_start = start, frame_end;
 	while(1){
-		buf.buf[(int)(total_time / 5)] = '#';
+		frame_end = get_time();
+		double dt = frame_end - frame_start;
+		frame_start = frame_end;
 
-		double dt = total_time - prev_time;
-		clear_screen();
+		reset_position();
+
+		struct shader_context ctx = {
+			.time = frame_start,
+			.w = buf.w,
+			.h = buf.h
+		};
+
+		txt_shader(buf, &ctx, shader);
+
 		print_buf(buf);
-		printf("time: %lf dt: %lf fps: %lf\n", total_time, dt, 1.0/dt);
-		SET_CURSOR_POS(0, 0);
 
-		gettimeofday(&stop, NULL);
-		double t = (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec;
-		prev_time = total_time;
-
-		total_time = t / 1000000;
-
-
-
-
+		printf("time: %lf dt: %lf fps: %lf\n", frame_start - start, dt, 1.0/dt);
 	}
-
-	printf("%d\n", BUFSIZ);
-	
 
 	return 0;
 }
