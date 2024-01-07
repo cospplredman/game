@@ -19,4 +19,3 @@ static inline vec3 mul(vec3 a, vec3 b){
 static inline float dot(vec3 a, vec3 b){
 	return a.x * b.x + a.y * b.y + a.z * b.z; }
 
-

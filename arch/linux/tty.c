@@ -1,7 +1,5 @@
-
-
-
-
+#include "../tty.h"
+#include <stdio.h>
 
 //ansi specific
 #define HIDE_CURSOR printf("\033[?25l")
@@ -10,26 +8,25 @@
 
 #define TXT_ASPECT 2.1  //h/w
 
-static inline void hide_cursor(){
+void hide_cursor(){
 	HIDE_CURSOR;
 }
 
-static inline void show_cursor(){
+void show_cursor(){
 	SHOW_CURSOR;
 }
 
-static inline void reset_position(){
+void reset_position(){
 	SET_CURSOR_POS(0, 0);
 	//system("clear");
 }
 
-
 //TODO for realzies
-static inline size_t get_width(){
+size_t get_width(){
 	return 160;
 }
 
-static inline size_t get_height(){
+size_t get_height(){
 	return 50;
 }
 

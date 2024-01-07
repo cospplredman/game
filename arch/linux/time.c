@@ -1,7 +1,9 @@
+#include "../time.h"
 #include <sys/time.h> 
+#include <stddef.h>
 // #include <time.h>
 
-static inline double get_time(){
+double get_time(){
 	struct timeval start;
 	gettimeofday(&start, NULL);
 	//printf("%d %d\n", start.tv_sec, start.tv_usec);

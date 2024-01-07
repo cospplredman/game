@@ -7,9 +7,11 @@
 #include<stdbool.h>
 #include<stdint.h>
 
-#include "src/tty.h"
+#include "arch/tty.h"
+#include "arch/time.h"
+#include "arch/input.h"
+
 #include "src/linalg.h"
-#include "src/time.h"
 #include "src/render.h"
 
 #define min(a, b) ((a)<(b)?(a):(b))
@@ -23,7 +25,7 @@ struct shader_context{
 char shader(size_t x, size_t y, void *ctx_){
 	struct shader_context *ctx = (struct shader_context*)ctx_;
 
-	double uvx = (double)(2*(int)x - (int)ctx->w)/(double)ctx->w * TXT_ASPECT,
+	double uvx = (double)(2*(int)x - (int)ctx->w)/(double)ctx->w * 2.1,
 	       uvy = (double)(2*(int)y - (int)ctx->h)/(double)ctx->h;
 
 	double dist = sqrt(uvx*uvx + uvy*uvy);
