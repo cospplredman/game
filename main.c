@@ -38,15 +38,20 @@ char shader(size_t x, size_t y, void *ctx_){
 
 
 int main(){
-	//make sure our frame buffer can fit into the output buffer
-	setbuf(stdout, malloc(min(BUFSIZ, 200 * 70)));
 
+
+	//make sure our frame buffer can fit into the output buffer
+	setbuf(stdout, malloc(min(BUFSIZ, get_width()*get_height()*3)));
+	setup_input();
+
+	clear();
 	hide_cursor();
 
 	//no need to cleanup because that is handled by c at program exit
 	fbuf buf = init_fbuf(get_width(), get_height());	
 	double start = get_time(), frame_start = start, frame_end;
 	while(1){
+
 		frame_end = get_time();
 		double dt = frame_end - frame_start;
 		frame_start = frame_end;
@@ -61,9 +66,14 @@ int main(){
 
 		txt_shader(buf, &ctx, shader);
 
-		print_buf(buf);
+		draw_line(buf, (vec2){5, 5 + 4*cos(frame_start)}, (vec2){buf.w - 5, buf.h - 5}, 2 + cos(frame_start));
 
+		print_buf(buf);
 		printf("time: %lf dt: %lf fps: %lf\n", frame_start - start, dt, 1.0/dt);
+
+		if(have_input()){
+			printf("%c\n", get_key());
+		}
 	}
 
 	return 0;

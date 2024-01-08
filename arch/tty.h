@@ -6,6 +6,7 @@
 void hide_cursor();
 void show_cursor();
 void reset_position();
+void clear();
 size_t get_width();
 size_t get_height();
 

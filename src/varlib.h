@@ -3,6 +3,7 @@
 
 //for arguments that all have the same type
 #define ARG_SZ(T, ...) (sizeof((T[]){__VA_ARGS__})/sizeof(T))
+
 int max(size_t sz, int s, ...){
     va_list v;
     va_start(v, s);

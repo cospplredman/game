@@ -1,5 +1,6 @@
 #include "../tty.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 //ansi specific
 #define HIDE_CURSOR printf("\033[?25l")
@@ -18,15 +19,18 @@ void show_cursor(){
 
 void reset_position(){
 	SET_CURSOR_POS(0, 0);
-	//system("clear");
+}
+
+void clear(){
+	system("clear");
 }
 
 //TODO for realzies
 size_t get_width(){
-	return 160;
+	return 80;
 }
 
 size_t get_height(){
-	return 50;
+	return 20;
 }
 
