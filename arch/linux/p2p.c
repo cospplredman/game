@@ -19,8 +19,16 @@ static struct peer_con {
 	int sock;
 	struct sockaddr addr;
 } peer[10];
-
 static int peers = 0;
+
+void disconnect_peer(int p){
+	close(peer[p].sock);
+	for(int i = p+1; i < peers; i++)
+		peer[i-1]=peer[i];
+
+	peers--;
+}
+
 
 int compare_addresses(const struct sockaddr *addr1, const struct sockaddr *addr2) {
     // Check if the address families are the same
@@ -102,18 +110,18 @@ void connect_to_peer(char *address, int port){
 	connect_to_peer_((struct sockaddr*)&serv_addr);
 }
 
-void disconnect_peer(int p){
-	(void)p;
-	//TODO
-}
-
 void handle_packets(int p) {
 	char buffer[1024];
 	int bytes_received;
 
 	while(1){
 		bytes_received = recv(peer[p].sock, buffer, sizeof(buffer), 0);
-		if (bytes_received <= 0)
+		if (bytes_received == 0){
+			printf("disconnected from peer %d.\n", p);
+			disconnect_peer(p);
+		}
+
+		if (bytes_received < 0)
 			break;
 
 		packet_callback(p, buffer, bytes_received);
