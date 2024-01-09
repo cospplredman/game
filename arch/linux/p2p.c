@@ -102,6 +102,8 @@ void connect_to_peer(char *address, int port){
 		}
 	}
 
+	printf("connecting to\n");
+	print_sockaddr(&addr);
 	peer[peers++] = (struct peer_con){.send = client_fd, .recv = -1, .addr = addr};
 }
 
