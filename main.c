@@ -10,6 +10,7 @@
 #include "arch/tty.h"
 #include "arch/time.h"
 #include "arch/input.h"
+#include "arch/networking.h"
 
 #include "src/linalg.h"
 #include "src/render.h"
@@ -36,9 +37,44 @@ char shader(size_t x, size_t y, void *ctx_){
 	return ' ';
 }
 
+int x = 0, y = 0;
+int px = 0, py = 0;
 
-int main(){
+void packet_callback(int p, char *buf, size_t len){
+	for(int i = 0; i < len; i++){
+		switch(buf[i]){
+			case 'a':
+				px--;
+				break;
+			case 's':
+				py++;
+				break;
+			case 'd':
+				px++;
+				break;
+			case 'w':
+				py--;
+				break;
+		}
+	}
+}
 
+int main(int c, char **argv){
+	if(c != 2){
+		printf("usage: game PORT\n");
+		return 1;
+	}
+
+	int port = atoi(argv[1]);
+	setup_peer_con(port, packet_callback);
+
+
+	char *address = "127.1.1.1";
+	int peer_port;
+	printf("port: ");
+	scanf("%d", &peer_port);
+	printf("got: %s:%d\n", address, peer_port);
+	connect_to_peer(address, peer_port);
 
 	//make sure our frame buffer can fit into the output buffer
 	setbuf(stdout, malloc(min(BUFSIZ, get_width()*get_height()*3)));
@@ -68,11 +104,29 @@ int main(){
 
 		draw_line(buf, (vec2){5, 5 + 4*cos(frame_start)}, (vec2){buf.w - 5, buf.h - 5}, 2 + cos(frame_start));
 
+		draw_point(buf, (vec2){x, y}, '%');
+		draw_point(buf, (vec2){px, py}, '&');
+
 		print_buf(buf);
 		printf("time: %lf dt: %lf fps: %lf\n", frame_start - start, dt, 1.0/dt);
 
 		if(have_input()){
-			printf("%c\n", get_key());
+			char key = get_key();
+			send_to_peer(0, &key, 1);
+			switch(key){
+				case 'a':
+					x--;
+					break;
+				case 's':
+					y++;
+					break;
+				case 'd':
+					x++;
+					break;
+				case 'w':
+					y--;
+					break;
+			}
 		}
 	}
 
