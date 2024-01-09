@@ -16,8 +16,6 @@ void dummy_callback(int peer, char* buf, size_t len){
 
 static void (*packet_callback)(int peer, char *buf, size_t len) = dummy_callback;
 
-
-
 static struct peer_con {
 	int send;
 	int recv;
@@ -25,10 +23,6 @@ static struct peer_con {
 } peer[10];
 
 static int peers = 0;
-
-void send_to_peer(int p, char *buf, size_t len){
-	send(peer[p].send, buf, len, 0);
-}
 
 int compare_addresses(const struct sockaddr *addr1, const struct sockaddr *addr2) {
     // Check if the address families are the same
@@ -64,27 +58,15 @@ void print_sockaddr(const struct sockaddr *addr) {
     }
 }
 
-
-void connect_to_peer(char *address, int port){
-	if(peers >= 10)
-		return;
-
-	struct sockaddr_in serv_addr;
+void connect_to_peer_(struct sockaddr *serv_addr){
 	int client_fd;
 	if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		//printf("\n Socket creation error \n");
 		return;
 	}
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(port);
 
-	if (inet_pton(AF_INET, address, &serv_addr.sin_addr) <= 0) {
-		//printf("\nInvalid address/ Address not supported \n");
-		return;
-	}
-
-	if (connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+	if (connect(client_fd, serv_addr, sizeof(*serv_addr)) < 0) {
 		//printf("\nConnection Failed \n");
 		return;
 	}
@@ -93,7 +75,7 @@ void connect_to_peer(char *address, int port){
 
 	struct sockaddr addr;
 	socklen_t sz = sizeof(addr);
-	getsockname(client_fd, &addr, &sz);
+	getpeername(client_fd, &addr, &sz);
 
 	for(int i = 0; i < peers; i++){
 		if(compare_addresses(&peer[i].addr, &addr)){
@@ -105,6 +87,27 @@ void connect_to_peer(char *address, int port){
 	printf("connecting to\n");
 	print_sockaddr(&addr);
 	peer[peers++] = (struct peer_con){.send = client_fd, .recv = -1, .addr = addr};
+}
+
+void connect_to_peer(char *address, int port){
+	struct sockaddr_in serv_addr;
+	if(peers >= 10)
+		return;
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(port);
+
+	if (inet_pton(AF_INET, address, &serv_addr.sin_addr) <= 0) {
+		//printf("\nInvalid address/ Address not supported \n");
+		return;
+	}
+
+	connect_to_peer_((struct sockaddr*)&serv_addr);
+}
+
+void disconnect_peer(int p){
+	(void)p;
+	//TODO
 }
 
 void handle_packets(int p) {
@@ -137,9 +140,9 @@ void *handle_peers(void *cb){
 				
 				printf("new connection from:\n");
 				print_sockaddr(&addr);
-				
-				peer[peers++] = (struct peer_con){.send = -1, .recv = fd, .addr = addr};
 
+				peer[peers++] = (struct peer_con){.send = -1, .recv = fd, .addr = addr};
+				connect_to_peer_(&addr);
 			skip:;
 			}
 		}
@@ -191,6 +194,13 @@ int setup_listener_sock(int PORT){
 int get_max_peers(){
 	return 10;
 }
+
+void send_to_peer(int p, char *buf, size_t len){
+	printf("sending to\n");
+	print_sockaddr(&peer[p].addr);
+	send(peer[p].send, buf, len, 0);
+}
+
 
 int setup_peer_con(int port, void (*fn)(int, char*, size_t)){
 	packet_callback = fn;
