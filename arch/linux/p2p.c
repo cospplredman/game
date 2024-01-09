@@ -8,7 +8,6 @@
 
 
 //TODO deal with errors properly :/
-
 void dummy_callback(int peer, char* buf, size_t len){
 	buf[len] = 0;
 	printf("peer %d: %s\n", peer, buf);
@@ -17,8 +16,7 @@ void dummy_callback(int peer, char* buf, size_t len){
 static void (*packet_callback)(int peer, char *buf, size_t len) = dummy_callback;
 
 static struct peer_con {
-	int send;
-	int recv;
+	int sock;
 	struct sockaddr addr;
 } peer[10];
 
@@ -79,14 +77,13 @@ void connect_to_peer_(struct sockaddr *serv_addr){
 
 	for(int i = 0; i < peers; i++){
 		if(compare_addresses(&peer[i].addr, &addr)){
-			peer[i].send = client_fd;
 			return;
 		}
 	}
 
 	printf("connecting to\n");
 	print_sockaddr(&addr);
-	peer[peers++] = (struct peer_con){.send = client_fd, .recv = -1, .addr = addr};
+	peer[peers++] = (struct peer_con){.sock = client_fd, .addr = addr};
 }
 
 void connect_to_peer(char *address, int port){
@@ -115,7 +112,7 @@ void handle_packets(int p) {
 	int bytes_received;
 
 	while(1){
-		bytes_received = recv(peer[p].recv, buffer, sizeof(buffer), 0);
+		bytes_received = recv(peer[p].sock, buffer, sizeof(buffer), 0);
 		if (bytes_received <= 0)
 			break;
 
@@ -133,7 +130,6 @@ void *handle_peers(void *cb){
 			if(fd >= 0){
 				for(int i = 0; i < peers; i++){
 					if(compare_addresses(&peer[i].addr, &addr)){
-						peer[i].recv = fd;
 						goto skip;
 					}
 				}
@@ -141,8 +137,7 @@ void *handle_peers(void *cb){
 				printf("new connection from:\n");
 				print_sockaddr(&addr);
 
-				peer[peers++] = (struct peer_con){.send = -1, .recv = fd, .addr = addr};
-				connect_to_peer_(&addr);
+				peer[peers++] = (struct peer_con){.sock  = fd, .addr = addr};
 			skip:;
 			}
 		}
@@ -198,7 +193,7 @@ int get_max_peers(){
 void send_to_peer(int p, char *buf, size_t len){
 	printf("sending to\n");
 	print_sockaddr(&peer[p].addr);
-	send(peer[p].send, buf, len, 0);
+	send(peer[p].sock, buf, len, 0);
 }
 
 
