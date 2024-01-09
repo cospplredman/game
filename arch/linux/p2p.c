@@ -48,6 +48,23 @@ int compare_addresses(const struct sockaddr *addr1, const struct sockaddr *addr2
     return 0;
 }
 
+void print_sockaddr(const struct sockaddr *addr) {
+    char ip_str[INET6_ADDRSTRLEN];
+
+    if (addr->sa_family == AF_INET) {
+        const struct sockaddr_in *ipv4_addr = (const struct sockaddr_in *)addr;
+        inet_ntop(AF_INET, &(ipv4_addr->sin_addr), ip_str, INET_ADDRSTRLEN);
+        printf("IPv4 Address: %s, Port: %d\n", ip_str, ntohs(ipv4_addr->sin_port));
+    } else if (addr->sa_family == AF_INET6) {
+        const struct sockaddr_in6 *ipv6_addr = (const struct sockaddr_in6 *)addr;
+        inet_ntop(AF_INET6, &(ipv6_addr->sin6_addr), ip_str, INET6_ADDRSTRLEN);
+        printf("IPv6 Address: %s, Port: %d\n", ip_str, ntohs(ipv6_addr->sin6_port));
+    } else {
+        printf("Unsupported address family: %d\n", addr->sa_family);
+    }
+}
+
+
 void connect_to_peer(char *address, int port){
 	if(peers >= 10)
 		return;
@@ -115,7 +132,10 @@ void *handle_peers(void *cb){
 						goto skip;
 					}
 				}
-
+				
+				printf("new connection from:\n");
+				print_sockaddr(&addr);
+				
 				peer[peers++] = (struct peer_con){.send = -1, .recv = fd, .addr = addr};
 
 			skip:;
