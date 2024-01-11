@@ -41,7 +41,9 @@ int x = 0, y = 0;
 int px = 0, py = 0;
 
 void packet_callback(int p, char *buf, size_t len){
-	for(int i = 0; i < len; i++){
+	printf("%d: %s", p, buf);
+	for(size_t i = 0; i < len; i++){
+		printf("%d: %c\n", p, buf[i]);
 		switch(buf[i]){
 			case 'a':
 				px--;
@@ -59,6 +61,45 @@ void packet_callback(int p, char *buf, size_t len){
 	}
 }
 
+void handle_input(){
+	char key = get_key();
+	char buf[100];
+	int port;
+	
+	switch(key){
+		case 'a':
+			x--;
+			break;
+		case 's':
+			y++;
+			break;
+		case 'd':
+			x++;
+			break;
+		case 'w':
+			y--;
+			break;
+		case 'c':
+			fflush(stdout);
+			clear();
+			show_cursor();
+
+			printf("\n\nconnect to: ");
+			fflush(stdout);
+
+			scanf("%s", buf); 
+			printf("\nport: ");
+			fflush(stdout);
+
+			scanf("%d", &port);
+			connect_to_peer(buf, port);
+			hide_cursor();
+			break;
+	}
+
+	send_to_peer(0, &key, 1);
+}
+
 int main(int c, char **argv){
 	if(c != 2){
 		printf("usage: game PORT\n");
@@ -68,22 +109,13 @@ int main(int c, char **argv){
 	int port = atoi(argv[1]);
 	setup_peer_con(port, packet_callback);
 
-
-	char *address = "127.1.1.1";
-	int peer_port;
-	printf("port: ");
-	scanf("%d", &peer_port);
-	printf("got: %s:%d\n", address, peer_port);
-	connect_to_peer(address, peer_port);
-
 	//make sure our frame buffer can fit into the output buffer
 	setbuf(stdout, malloc(min(BUFSIZ, get_width()*get_height()*3)));
-	setup_input();
 
+	setup_input();
 	clear();
 	hide_cursor();
 
-	//no need to cleanup because that is handled by c at program exit
 	fbuf buf = init_fbuf(get_width(), get_height());	
 	double start = get_time(), frame_start = start, frame_end;
 	while(1){
@@ -103,33 +135,16 @@ int main(int c, char **argv){
 		txt_shader(buf, &ctx, shader);
 
 		draw_line(buf, (vec2){5, 5 + 4*cos(frame_start)}, (vec2){buf.w - 5, buf.h - 5}, 2 + cos(frame_start));
-
 		draw_point(buf, (vec2){x, y}, '%');
 		draw_point(buf, (vec2){px, py}, '&');
 
 		print_buf(buf);
 		printf("time: %lf dt: %lf fps: %lf\n", frame_start - start, dt, 1.0/dt);
+		printf("\f\f");
 
-		if(have_input()){
-			char key = get_key();
-			send_to_peer(0, &key, 1);
-			switch(key){
-				case 'a':
-					x--;
-					break;
-				case 's':
-					y++;
-					break;
-				case 'd':
-					x++;
-					break;
-				case 'w':
-					y--;
-					break;
-			}
-		}
+		while(have_input())
+			handle_input();
 	}
-
 	return 0;
 }
 
